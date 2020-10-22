@@ -1,0 +1,4 @@
+.idea
+.terraform*
+azure/.ssh
+terraform.tfstate*
