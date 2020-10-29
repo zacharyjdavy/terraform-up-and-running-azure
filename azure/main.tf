@@ -88,5 +88,6 @@ resource "azurerm_linux_virtual_machine" "zdavy-sandbox" {
 
   tags = {
     environment = "zdavy-sandbox"
+    name = "zdavy-sandbox-linux-virtual-machine"
   }
 }
