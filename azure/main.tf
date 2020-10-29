@@ -29,6 +29,17 @@ resource "azurerm_subnet" "zdavy-sandbox" {
   address_prefixes = ["10.0.2.0/24"]
 }
 
+resource "azurerm_public_ip" "zdavy-sandbox" {
+    name                         = "zdavy-sandbox-public-ip"
+    location                     = "centralus"
+    resource_group_name          = azurerm_resource_group.zdavy-sandbox.name
+    allocation_method            = "Dynamic"
+
+    tags = {
+        environment = "zdavy-sandbox"
+    }
+}
+
 resource "azurerm_network_interface" "zdavy-sandbox" {
   name = "zdavy-sandbox-network-interface"
   location = azurerm_resource_group.zdavy-sandbox.location
@@ -38,11 +49,38 @@ resource "azurerm_network_interface" "zdavy-sandbox" {
     name = "zdavy-sandbox-ip-configuration"
     subnet_id = azurerm_subnet.zdavy-sandbox.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id = azurerm_public_ip.zdavy-sandbox.id
   }
 
   tags = {
     environment = "zdavy-sandbox"
   }
+}
+resource "azurerm_network_security_group" "zdavy-sandbox" {
+    name                = "zdavy-sandbox-network-security-group"
+    location            = azurerm_resource_group.zdavy-sandbox.location
+    resource_group_name = azurerm_resource_group.zdavy-sandbox.name
+
+    security_rule {
+        name                       = "HTTP"
+        priority                   = 200
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "TCP"
+        source_port_range          = "*"
+        destination_port_range     = "8080"
+        source_address_prefix      = "*"
+        destination_address_prefix = "*"
+    }
+
+    tags = {
+        environment = "Terraform Demo"
+    }
+}
+
+resource "azurerm_network_interface_security_group_association" "zdavy-sandbox" {
+  network_interface_id      = azurerm_network_interface.zdavy-sandbox.id
+  network_security_group_id = azurerm_network_security_group.zdavy-sandbox.id
 }
 
 resource "tls_private_key" "zdavy-sandbox" {
@@ -90,4 +128,12 @@ resource "azurerm_linux_virtual_machine" "zdavy-sandbox" {
     environment = "zdavy-sandbox"
     name = "zdavy-sandbox-linux-virtual-machine"
   }
+
+  custom_data = base64encode(
+    <<-EOF
+    #!/bin/bash
+    echo "Hello, World" > index.html
+    nohup busybox httpd -f -p 8080 &
+    EOF
+  )
 }
